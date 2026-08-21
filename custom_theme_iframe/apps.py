@@ -12,6 +12,10 @@ class CustomThemeIframeConfig(AppConfig):
     def ready(self):
         from django.conf import settings
         middleware_path = 'custom_theme_iframe.middleware.ForceLightModeMiddleware'
+        
         # Dynamically inject the middleware into the global settings
         if middleware_path not in settings.MIDDLEWARE:
-            settings.MIDDLEWARE.append(middleware_path)
+            if isinstance(settings.MIDDLEWARE, tuple):
+                settings.MIDDLEWARE = settings.MIDDLEWARE + (middleware_path,)
+            else:
+                settings.MIDDLEWARE.append(middleware_path)
