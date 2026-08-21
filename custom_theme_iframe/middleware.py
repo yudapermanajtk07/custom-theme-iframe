@@ -5,35 +5,51 @@ class ForceLightModeMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         
-        # Intercept only HTML responses on XBlock iframe routes
         if request.path.startswith('/xblock/') and 'text/html' in response.get('Content-Type', ''):
             try:
                 content = response.content.decode('utf-8')
                 
-                # CSS override to force light background and dark text
-                style = \"\"\"
+                # Inject Script and CSS to force light mode logically and visually
+                injection = \"\"\"
+                <script>
+                  // Force theme to light immediately
+                  document.documentElement.setAttribute('data-theme', 'light');
+                  
+                  // Set up an observer to stubbornly revert any attempts to change it to dark
+                  const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                      if (mutation.attributeName === 'data-theme') {
+                        if (document.documentElement.getAttribute('data-theme') !== 'light') {
+                          document.documentElement.setAttribute('data-theme', 'light');
+                        }
+                      }
+                    });
+                  });
+                  
+                  // Start observing as soon as possible
+                  observer.observe(document.documentElement, { attributes: true });
+                  
+                  // Also handle the body tag just in case
+                  document.addEventListener("DOMContentLoaded", () => {
+                    document.body.setAttribute('data-theme', 'light');
+                    observer.observe(document.body, { attributes: true });
+                  });
+                </script>
                 <style>
-                  /* Force light mode in iframe */
+                  /* Fallback visual overrides just to be safe */
                   :root { color-scheme: light !important; }
                   body, html, .xblock-iframe-content {
                     background-color: #ffffff !important;
-                    color: #0B1F3F !important;
-                  }
-                  /* Force text color for generic containers */
-                  .xblock-iframe-content p, .xblock-iframe-content div, .xblock-iframe-content span {
-                    color: #0B1F3F;
                   }
                 </style>
                 \"\"\"
                 
-                # Inject right before </head>
                 if '</head>' in content:
-                    content = content.replace('</head>', style + '\n</head>')
+                    content = content.replace('</head>', injection + '\n</head>')
                     response.content = content.encode('utf-8')
-                    # Update Content-Length header so it doesn't break transmission
                     if 'Content-Length' in response:
                         response['Content-Length'] = str(len(response.content))
             except Exception:
-                pass # Fail gracefully
+                pass 
 
         return response
