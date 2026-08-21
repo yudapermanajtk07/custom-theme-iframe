@@ -13,7 +13,7 @@ class ForceLightModeMiddleware:
                 content = content.replace('indigo-dark-theme', '')
                 
                 # 2. Inject Script and CSS to force light mode logically and visually
-                injection = \"\"\"
+                injection = """
                 <script>
                   // Force theme to light immediately
                   document.documentElement.setAttribute('data-theme', 'light');
@@ -56,7 +56,7 @@ class ForceLightModeMiddleware:
                     color: #000000;
                   }
                 </style>
-                \"\"\"
+                """
                 
                 if '</head>' in content:
                     content = content.replace('</head>', injection + '\n</head>')
